@@ -1,0 +1,38 @@
+name: Validate GradeFlow
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r backend/requirements.txt
+      - run: python -m pytest tests -q
+        working-directory: backend
+  sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r backend/requirements.txt
+      - run: |
+          for language in python java cpp; do
+            docker build -f sandbox/$language.Dockerfile -t gradeflow-$language:local sandbox
+          done
+      - run: RUN_DOCKER_TESTS=1 python -m pytest tests/test_sandbox.py -q
+        working-directory: backend
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run: {working-directory: flutter_app}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: {channel: stable, cache: true}
+      - run: flutter create --project-name gradeflow --platforms=web .
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - run: flutter build web --release

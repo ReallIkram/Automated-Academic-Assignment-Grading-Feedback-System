@@ -1,0 +1,4 @@
+FROM gcc:14
+RUN mkdir /work && chmod 755 /work
+WORKDIR /work
+USER 65534:65534
